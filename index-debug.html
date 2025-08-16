@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>影と光｜デバッグ版（強制初期化）</title>
+<style>
+  :root{ --bg:#0e1117; --ink:#e5e7eb; --squareA:#1f293b; --squareB:#273247; --crystal:#0f5a6d; --p1:#67e8f9; --p2:#f87171; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif}
+  header{padding:10px 12px} h1{font-size:16px;margin:0}
+  #holder{display:flex;justify-content:center;padding:8px}
+  canvas{display:block;background:#0b0f18;border-radius:16px;border:1px solid #283049;width:96vw;max-width:1200px;height:auto}
+  #dbg{position:fixed;inset:auto 8px 8px 8px;background:#111827;color:#cbd5e1;border:1px solid #334155;border-radius:10px;padding:8px;font-family:ui-monospace,Menlo,Consolas,monospace;max-height:40vh;overflow:auto}
+</style>
+</head>
+<body>
+<header><h1>影と光｜デバッグ版</h1></header>
+<div id="holder"><canvas id="board" width="960" height="960"></canvas></div>
+<pre id="dbg">booting…</pre>
+<script>
+(function(){
+  const dbg = document.getElementById('dbg'); const log=(...a)=>{ const s=a.join(' '); dbg.textContent += "\n"+s; console.log(...a); };
+  function ok(x){ log("OK:", x); }
+  try{
+    const N=8, CRYSTAL=new Set(['3,3','4,3','3,4','4,4']), P1=1, P2=2, LIGHT='light', SHADOW='shadow';
+    const canvas=document.getElementById('board'), ctx=canvas.getContext('2d');
+    log("canvas?", !!canvas, "ctx?", !!ctx, "w,h=", canvas.width, canvas.height);
+    let S = { pieces:[], phase:'昼', phaseRemain:4, turn:P1, selected:null, crystal:new Map() };
+    // pieces
+    let id=0;
+    for(let i=0;i<5;i++) S.pieces.push({id:id++,owner:P1,kind:LIGHT,x:i,y:0,alive:true});
+    for(let i=0;i<5;i++) S.pieces.push({id:id++,owner:P1,kind:SHADOW,x:i+3,y:1,alive:true});
+    for(let i=0;i<5;i++) S.pieces.push({id:id++,owner:P2,kind:LIGHT,x:i,y:7,alive:true});
+    for(let i=0;i<5;i++) S.pieces.push({id:id++,owner:P2,kind:SHADOW,x:i+3,y:6,alive:true});
+    ok("pieces="+S.pieces.length);
+    drawBoard(); drawPieces();
+    function drawBoard(){
+      const CELL = canvas.width/(window.devicePixelRatio||1)/N;
+      for(let r=0;r<N;r++)for(let c=0;c<N;c++){const x=c*CELL, y=(N-1-r)*CELL; const dark=(r+c)%2; ctx.fillStyle = dark? get('--squareB') : get('--squareA'); if(CRYSTAL.has(`${c},${r}`)) ctx.fillStyle=get('--crystal'); ctx.fillRect(x,y,CELL,CELL);}
+    }
+    function drawPieces(){
+      const CELL = canvas.width/(window.devicePixelRatio||1)/N;
+      for(const p of S.pieces){ if(!p.alive) continue; const x=p.x*CELL+CELL/2, y=(N-1-p.y)*CELL+CELL/2;
+        ctx.beginPath(); ctx.arc(x,y, CELL*0.36, 0, Math.PI*2); ctx.fillStyle = p.kind===LIGHT? '#ffd166' : '#2d2a32'; ctx.fill();
+        ctx.lineWidth = Math.max(3, CELL*0.05); ctx.strokeStyle = p.owner===P1? get('--p1') : get('--p2'); ctx.stroke();
+        ctx.fillStyle = p.kind===LIGHT? '#1c1b1b' : '#eaeaea'; ctx.font = (CELL*0.54)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.kind===LIGHT?'☀':'☾', x, y+2);
+      }
+    }
+    function get(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    ok("drawn.");
+  }catch(e){ log("ERR:", e.message, e.stack); }
+})();
+</script>
+</body>
+</html>
